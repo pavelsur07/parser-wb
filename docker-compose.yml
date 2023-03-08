@@ -1,0 +1,132 @@
+version: "3.9"
+services:
+  traefik:
+    image: traefik:2.4
+    command:
+      --providers.docker=true
+      --providers.docker.exposedByDefault=false
+      --entryPoints.http.address=:80
+    ports:
+      - "80:80"
+      - "8080:8080"
+    networks:
+      - traefik-public
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+
+  site:
+    build:
+      context: site/docker
+      dockerfile: development/nginx/Dockerfile
+    volumes:
+      - ./site:/app
+    networks:
+      - traefik-public
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.http.routers.site.rule=Host(`localhost`)
+      - traefik.http.routers.site.entryPoints=http
+      - traefik.http.services.site.loadBalancer.server.port=80
+  
+  parser-wb:
+    build:
+      context: parser/docker
+      dockerfile: development/python/Dockerfile
+    environment:
+      APP_ENV: dev
+      PARSER_USER: APP
+      PARSER_PASSWORD: secret
+      SENTRY_DSN: ""
+    volumes:
+      - ./parser:/app
+
+  site-php-fpm:
+    build:
+      context: site/docker
+      dockerfile: development/php-fpm/Dockerfile
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: 1
+      APP_SECRET: 777
+      SENTRY_DSN: ""
+      PARSER_USER: APP
+      PARSER_PASSWORD: secret
+      API_URL: 'http://localhost/'
+    volumes:
+      - ./site:/app
+  site-php-cli:
+    build:
+      context: site/docker
+      dockerfile: development/php-cli/Dockerfile
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: 1
+      APP_SECRET: 777
+      SENTRY_DSN: ""
+      PARSER_USER: APP
+      PARSER_PASSWORD: secret
+      # TODO: Remove after installing CS Fixer for PHP 8.2
+      PHP_CS_FIXER_IGNORE_ENV: 1
+      API_URL: 'http://localhost/'
+    volumes:
+      - ./site:/app
+      
+  site-postgres:
+    image: postgres:13.3-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: app
+    volumes:
+      - site-postgres:/var/lib/postgresql/data
+    ports:
+      - "54321:5432"
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_ERLANG_COOKIE: SWQOKODS556QALRPCLNMEQG
+      RABBITMQ_DEFAULT_USER: rabbit
+      RABBITMQ_DEFAULT_PASS: rabbit
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    networks:
+      - traefik-public
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.http.routers.rabbitmq.rule=Host(`rabbitmq.localhost`)
+      - traefik.http.routers.rabbitmq.entryPoints=http
+      - traefik.http.services.rabbitmq.loadBalancer.server.port=15672
+
+  adminer:
+    image: adminer
+    restart: always
+    networks:
+      - traefik-public
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.http.routers.adminer.rule=Host(`adminer.localhost`)
+      - traefik.http.routers.adminer.entrypoints=http
+      - traefik.http.services.adminer.loadBalancer.server.port=8080
+    depends_on:
+      - site-postgres
+
+volumes:
+  site-postgres:
+  composer:
+  
+networks:
+  traefik-public:
+    name: traefik-public
+    driver: bridge
