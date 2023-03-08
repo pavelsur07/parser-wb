@@ -1,5 +1,13 @@
 version: "3.9"
 services:
+  parser_api:
+    build: ./parser_api
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./:/src
+    ports:
+      - 7980:8000
+
   traefik:
     image: traefik:2.4
     command:
