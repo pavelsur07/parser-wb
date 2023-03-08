@@ -1,0 +1,26 @@
+endpoints:
+    1. Отправить задачу на парсинг
+    /api/parser/product/ POST
+    {
+        'request_id' => '00000000-0000-0000-0000-000000000001',
+        'url' => '
+    }
+
+    2. Получить ответ парсинга
+    /api/parser/product/{request_id} GET
+    {
+        'request_id' => '00000000-0000-0000-0000-000000000001',
+        'name' => 'name',
+        'brand_name' => 'brand name',
+        .
+        .
+        .
+        .
+        .
+    }
+
+    или отдать ошибку
+    {
+        'request_id' => '00000000-0000-0000-0000-000000000001',
+        'message' => 'error message',
+    }
