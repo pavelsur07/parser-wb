@@ -1,14 +1,12 @@
 version: "3.9"
 services:
-  wildberries_parser_api:
-    build: 
-      context: ./parser
+  parser_api:
+    build: ./parser_api
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000
     volumes:
-      - ./parser/:/src
+      - ./:/src
     ports:
       - 7980:8000
-    restart: always
 
   traefik:
     image: traefik:2.4
