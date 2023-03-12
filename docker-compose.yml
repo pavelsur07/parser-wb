@@ -2,6 +2,11 @@ version: "3.9"
 services:
   parser_api:
     build: ./parser_api
+    environment:
+      APP_ENV: dev
+      PARSER_USER: APP
+      PARSER_PASSWORD: secret
+      SENTRY_DSN: ""
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000
     volumes:
       - ./:/src
@@ -40,18 +45,6 @@ services:
       - traefik.http.routers.site.rule=Host(`localhost`)
       - traefik.http.routers.site.entryPoints=http
       - traefik.http.services.site.loadBalancer.server.port=80
-  
-  parser-wb:
-    build:
-      context: parser/docker
-      dockerfile: development/python/Dockerfile
-    environment:
-      APP_ENV: dev
-      PARSER_USER: APP
-      PARSER_PASSWORD: secret
-      SENTRY_DSN: ""
-    volumes:
-      - ./parser:/app
 
   site-php-fpm:
     build:
@@ -94,6 +87,7 @@ services:
       - site-postgres:/var/lib/postgresql/data
     ports:
       - "54321:5432"
+  
   rabbitmq:
     image: rabbitmq:3-management
     hostname: rabbitmq
